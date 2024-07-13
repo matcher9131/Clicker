@@ -22,6 +22,7 @@ WCHAR activeWindowClass[MAX_LOADSTRING];
 Settings settings;
 bool isWorking = false;
 int remainTime = 10000;
+HBRUSH bgBrush;
 HBRUSH blueBrush;
 
 // このコード モジュールに含まれる関数の宣言を転送します:
@@ -143,6 +144,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_CREATE:
+        bgBrush = (HBRUSH)GetStockObject(LTGRAY_BRUSH);
         blueBrush = (HBRUSH)CreateSolidBrush(RGB(0x00, 0x00, 0xFF));
         SetTimer(hWnd, 1, TIMER_INTERVAL, NULL);
         break;
@@ -163,11 +165,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         }
         break;
+    case WM_ERASEBKGND:
+        {
+            HDC hdc = (HDC)wParam;
+            RECT rc;
+            GetClientRect(hWnd, &rc);
+            FillRect(hdc, &rc, bgBrush);
+            return 1;
+        }
+        break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: HDC を使用する描画コードをここに追加してください...
+            SetBkColor(hdc, 0x00C0C0C0);
             TextOutW(hdc, 10, 10, isWorking ? L"Working" : L"Pending", 7);
             SelectObject(hdc, blueBrush);
             Rectangle(hdc, 10, 40, 10 + BAR_WIDTH * remainTime / settings.interval, 50);
@@ -176,6 +188,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_DESTROY:
+        DeleteObject(bgBrush);
         DeleteObject(blueBrush);
         PostQuitMessage(0);
         break;
