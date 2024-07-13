@@ -10,6 +10,7 @@
 #define MOUSE_LOCATION_X(x) ((ULONG)x * 0xFFFF / GetSystemMetrics(SM_CXSCREEN))
 #define MOUSE_LOCATION_Y(y) ((ULONG)y * 0xFFFF / GetSystemMetrics(SM_CYSCREEN))
 constexpr int TIMER_INTERVAL = 100;
+constexpr int BAR_WIDTH = 200;
 
 // グローバル変数:
 HINSTANCE hInst;                                // 現在のインターフェイス
@@ -21,6 +22,7 @@ WCHAR activeWindowClass[MAX_LOADSTRING];
 Settings settings;
 bool isWorking = false;
 int remainTime = 10000;
+HBRUSH blueBrush;
 
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -91,7 +93,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_CLICKER));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_CLICKER);
+    wcex.lpszMenuName   = NULL;
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -113,7 +115,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    hInst = hInstance; // グローバル変数にインスタンス ハンドルを格納する
 
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, 500, 200, nullptr, nullptr, hInstance, nullptr);
+      CW_USEDEFAULT, 0, BAR_WIDTH + 50, 110, nullptr, nullptr, hInstance, nullptr);
 
    if (!hWnd)
    {
@@ -141,6 +143,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_CREATE:
+        blueBrush = (HBRUSH)CreateSolidBrush(RGB(0x00, 0x00, 0xFF));
         SetTimer(hWnd, 1, TIMER_INTERVAL, NULL);
         break;
     case WM_COMMAND:
@@ -166,11 +169,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: HDC を使用する描画コードをここに追加してください...
             TextOutW(hdc, 10, 10, isWorking ? L"Working" : L"Pending", 7);
+            SelectObject(hdc, blueBrush);
+            Rectangle(hdc, 10, 40, 10 + BAR_WIDTH * remainTime / settings.interval, 50);
             // 
             EndPaint(hWnd, &ps);
         }
         break;
     case WM_DESTROY:
+        DeleteObject(blueBrush);
         PostQuitMessage(0);
         break;
     case WM_TIMER:
@@ -187,6 +193,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 // remainTimeがなくなったらクリック動作をする
                 if (remainTime <= 0)
                 {
+                    // remainTimeをリセット
+                    remainTime = settings.interval;
+
                     RECT rect;
                     GetWindowRect(activeWindow, &rect);
                     long x = (rect.left + rect.right) / 2;
@@ -199,7 +208,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE | MOUSEEVENTF_LEFTDOWN 
                     };
                     SendInput(1, &input1, sizeof(INPUT));
-                    std::this_thread::sleep_for(std::chrono::milliseconds(35));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(34));
                     INPUT input2 = {
                         INPUT_MOUSE,
                         0,
@@ -208,8 +217,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         MOUSEEVENTF_LEFTUP
                     };
                     SendInput(1, &input2, sizeof(INPUT));
-                    // remainTimeをリセット
-                    remainTime = settings.interval;
                 }
             }
             // 再描画
