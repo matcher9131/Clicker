@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <thread>
+#include <windowsx.h>
 #include "framework.h"
 #include "Clicker.h"
 
@@ -11,6 +12,7 @@
 #define MOUSE_LOCATION_Y(y) ((ULONG)y * 0xFFFF / GetSystemMetrics(SM_CYSCREEN))
 constexpr int TIMER_INTERVAL = 100;
 constexpr int BAR_WIDTH = 200;
+constexpr int ENABLED_CHECKBOX_ID = 101;
 
 // グローバル変数:
 HINSTANCE hInst;                                // 現在のインターフェイス
@@ -20,6 +22,8 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // メイン ウィンドウ ク
 HWND activeWindow = NULL;
 WCHAR activeWindowClass[MAX_LOADSTRING];
 Settings settings;
+HWND enabledCheckBox = NULL;
+bool isEnabled = true;
 bool isWorking = false;
 int remainTime = 10000;
 HBRUSH bgBrush;
@@ -93,7 +97,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hInstance      = hInstance;
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_CLICKER));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
-    wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
+    wcex.hbrBackground  = (HBRUSH)(COLOR_APPWORKSPACE + 1);
     wcex.lpszMenuName   = NULL;
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
@@ -116,9 +120,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    hInst = hInstance; // グローバル変数にインスタンス ハンドルを格納する
 
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, BAR_WIDTH + 50, 110, nullptr, nullptr, hInstance, nullptr);
+      CW_USEDEFAULT, 0, BAR_WIDTH + 40, 110, nullptr, nullptr, hInstance, nullptr);
 
-   if (!hWnd)
+   enabledCheckBox = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, BAR_WIDTH - 10, 10, 20, 20, hWnd, (HMENU)ENABLED_CHECKBOX_ID, hInstance, NULL);
+
+   if (!hWnd || !enabledCheckBox)
    {
       return FALSE;
    }
@@ -144,7 +150,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_CREATE:
-        bgBrush = (HBRUSH)GetStockObject(LTGRAY_BRUSH);
+        bgBrush = (HBRUSH)GetSysColorBrush(COLOR_APPWORKSPACE);
         blueBrush = (HBRUSH)CreateSolidBrush(RGB(0x00, 0x00, 0xFF));
         SetTimer(hWnd, 1, TIMER_INTERVAL, NULL);
         break;
@@ -154,32 +160,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // 選択されたメニューの解析:
             switch (wmId)
             {
-            case IDM_ABOUT:
-                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-                break;
-            case IDM_EXIT:
-                DestroyWindow(hWnd);
+            case ENABLED_CHECKBOX_ID:
+
                 break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }
         }
         break;
-    case WM_ERASEBKGND:
-        {
-            HDC hdc = (HDC)wParam;
-            RECT rc;
-            GetClientRect(hWnd, &rc);
-            FillRect(hdc, &rc, bgBrush);
-            return 1;
-        }
-        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORSTATIC:
+        SetBkMode((HDC)wParam, TRANSPARENT);
+        return (long)bgBrush;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: HDC を使用する描画コードをここに追加してください...
-            SetBkColor(hdc, 0x00C0C0C0);
+            SetBkMode(hdc, TRANSPARENT);
             TextOutW(hdc, 10, 10, isWorking ? L"Working" : L"Pending", 7);
             SelectObject(hdc, blueBrush);
             Rectangle(hdc, 10, 40, 10 + BAR_WIDTH * remainTime / settings.interval, 50);
@@ -221,7 +219,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE | MOUSEEVENTF_LEFTDOWN 
                     };
                     SendInput(1, &input1, sizeof(INPUT));
-                    std::this_thread::sleep_for(std::chrono::milliseconds(34));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(50));
                     INPUT input2 = {
                         INPUT_MOUSE,
                         0,
