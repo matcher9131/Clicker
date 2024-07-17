@@ -64,6 +64,11 @@ LRESULT CALLBACK DialogProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
     case WM_COMMAND:
         switch (LOWORD(wParam))
         {
+        case IDOK:
+        case IDCANCEL:
+            // Escキー以外の理由でこのメッセージが飛んできた場合にのみEndDialogする
+            if ((GetKeyState(VK_ESCAPE) & 0x8000) == 0) EndDialog(hWnd, IDOK);
+            return TRUE;
         case IDC_ENABLED_CHECK:
             {
                 int checked = Button_GetCheck(GetDlgItem(hWnd, IDC_ENABLED_CHECK));
@@ -114,7 +119,7 @@ LRESULT CALLBACK DialogProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                 // remainTimeがなくなったらクリック動作をする
                 if (remainTime <= 0 && !isClicking)
                 {
-                    isClicking = true;
+                    isClicking = true;      
 
                     // remainTimeをリセット
                     remainTime = settings.interval;
