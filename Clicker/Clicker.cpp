@@ -11,18 +11,16 @@
 #define MOUSE_LOCATION_X(x) ((ULONG)x * 0xFFFF / GetSystemMetrics(SM_CXSCREEN))
 #define MOUSE_LOCATION_Y(y) ((ULONG)y * 0xFFFF / GetSystemMetrics(SM_CYSCREEN))
 constexpr int TIMER_INTERVAL = 100;
-constexpr int BAR_WIDTH = 200;
-constexpr int ENABLED_CHECKBOX_ID = 101;
 
 HWND activeWindow = NULL;
 WCHAR activeWindowClass[MAX_LOADSTRING];
 Settings settings;
-HWND enabledCheckBox = NULL;
 bool isEnabled = true;
 bool isWorking = false;
 bool isClicking = false;
 int remainTime = 10000;
 HBRUSH blueBrush;
+RECT remainBarRect = { 5L, 20L, 105L, 25L };
 
 // このコード モジュールに含まれる関数の宣言を転送します:
 INT_PTR CALLBACK DialogProc(HWND, UINT, WPARAM, LPARAM);
@@ -36,8 +34,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // 設定ファイルの読み込み
     settings = LoadSettings();
     remainTime = settings.interval;
-    //
 
+    // remainBarに使用するブラシの用意
     blueBrush = (HBRUSH)CreateSolidBrush(RGB(0x00, 0x00, 0xFF));
     if (blueBrush == NULL) {
         return 1;
@@ -59,6 +57,8 @@ LRESULT CALLBACK DialogProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             Button_SetCheck(GetDlgItem(hWnd, IDC_ENABLED_CHECK), BST_CHECKED);
             // labelの書き換え
             SetLabelText(hWnd);
+            // remainBarRectをDLUからpixelに変換
+            MapDialogRect(hWnd, &remainBarRect);
         }
         break;
     case WM_COMMAND:
@@ -87,7 +87,13 @@ LRESULT CALLBACK DialogProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: HDC を使用する描画コードをここに追加してください...
             SelectObject(hdc, blueBrush);
-            Rectangle(hdc, 10, 40, 10 + BAR_WIDTH * remainTime / settings.interval, 50);
+            Rectangle(
+                hdc, 
+                remainBarRect.left, 
+                remainBarRect.top, 
+                remainBarRect.left + (remainBarRect.right - remainBarRect.left) * remainTime / settings.interval, 
+                remainBarRect.bottom
+            );
             // 
             EndPaint(hWnd, &ps);
         }

@@ -11,9 +11,7 @@
 #define IDC_CLICKER                     109
 #define IDR_MAINFRAME                   128
 #define IDD_MAIN_DIALOG                 129
-#define IDC_CHECK1                      1001
 #define IDC_ENABLED_CHECK               1001
-#define IDC_STATIC                      -1
 #define IDC_WORKING_LABEL               -1
 
 // Next default values for new objects
