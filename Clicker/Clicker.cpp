@@ -12,19 +12,31 @@
 #define MOUSE_LOCATION_Y(y) ((ULONG)y * 0xFFFF / GetSystemMetrics(SM_CYSCREEN))
 constexpr int TIMER_INTERVAL = 100;
 
+enum State {
+    Idle,
+    MouseDown,
+    TargetMouseDown,
+    DstMouseDown,
+    ConfirmMouseDown,
+};
+
 HWND activeWindow = NULL;
 WCHAR activeWindowClass[MAX_LOADSTRING];
 Settings settings;
 bool isEnabled = true;
 bool isWorking = false;
-bool isClicking = false;
+State state = State::Idle;
 int remainTime = 10000;
+int advancedRemainTime = 1000;
 HBRUSH blueBrush;
 RECT remainBarRect = { 5L, 20L, 105L, 25L };
+bool isAdvancedChecked = false;
 
 // このコード モジュールに含まれる関数の宣言を転送します:
 INT_PTR CALLBACK DialogProc(HWND, UINT, WPARAM, LPARAM);
 void SetLabelText(HWND);
+static void DoMouseDown(ULONG x, ULONG y, bool isLeft = true);
+static void DoMouseUp(bool isLeft = true);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -77,6 +89,18 @@ LRESULT CALLBACK DialogProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                 SetLabelText(hWnd);
             }
             break;
+        case IDC_ADVANCED_CHECK:
+            {
+                int checked = Button_GetCheck(GetDlgItem(hWnd, IDC_ADVANCED_CHECK));
+                isAdvancedChecked = checked == BST_CHECKED;
+            }
+            break;
+        //case IDC_TEST_BUTTON:
+        //    {
+        //        activeWindow = GetForegroundWindow();
+
+        //    }
+        //    break;
         default:
             break;
         }
@@ -116,43 +140,51 @@ LRESULT CALLBACK DialogProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
             if (isWorking)
             {
-                // クリック動作中でなければremainTimeを減らす
-                if (!isClicking)
+                switch (state)
                 {
-                    remainTime -= TIMER_INTERVAL;
-                }
-                
-                // remainTimeがなくなったらクリック動作をする
-                if (remainTime <= 0 && !isClicking)
-                {
-                    isClicking = true;      
+                case Idle:
+                    {
+                        remainTime -= TIMER_INTERVAL;
+                        // remainTimeがなくなったらmouseDownする
+                        if (remainTime <= 0)
+                        {
+                            // TODO: Advanced
 
-                    // remainTimeをリセット
-                    remainTime = settings.interval;
+                            // remainTimeをリセット
+                            remainTime = settings.interval;
 
-                    RECT rect;
-                    GetWindowRect(activeWindow, &rect);
-                    long x = (rect.left + rect.right) / 2;
-                    long y = (rect.top + rect.bottom) / 2;
-                    INPUT input1 = {
-                        INPUT_MOUSE, 
-                        MOUSE_LOCATION_X(x), 
-                        MOUSE_LOCATION_Y(y),
-                        0,
-                        MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE | MOUSEEVENTF_LEFTDOWN 
-                    };
-                    SendInput(1, &input1, sizeof(INPUT));
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                    INPUT input2 = {
-                        INPUT_MOUSE,
-                        0,
-                        0,
-                        0,
-                        MOUSEEVENTF_LEFTUP
-                    };
-                    SendInput(1, &input2, sizeof(INPUT));
-
-                    isClicking = false;
+                            RECT rect;
+                            GetWindowRect(activeWindow, &rect);
+                            long x = (rect.left + rect.right) / 2;
+                            long y = (rect.top + rect.bottom) / 2;
+                            DoMouseDown(x, y);
+                            state = State::MouseDown;
+                        }
+                    }
+                    break;
+                case MouseDown:
+                    {
+                        DoMouseUp();
+                        state = State::Idle;
+                    }
+                    break;
+                case TargetMouseDown:
+                    {
+                        // NOT IMPLEMENTED
+                    }
+                    break;
+                case DstMouseDown:
+                    {
+                        // NOT IMPLEMENTED
+                    }
+                    break;
+                case ConfirmMouseDown:
+                    {
+                        // NOT IMPLEMENTED
+                    }
+                    break;
+                default:
+                    break;
                 }
             }
             // 再描画
@@ -168,4 +200,28 @@ LRESULT CALLBACK DialogProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 void SetLabelText(HWND hWnd)
 {
     SetDlgItemTextW(hWnd, IDC_WORKING_LABEL, isEnabled ? isWorking ? L"Working" : L"Pending" : L"Disabled");
+}
+
+static void DoMouseDown(ULONG x, ULONG y, bool isLeft)
+{
+    INPUT input = {
+        INPUT_MOUSE,
+        MOUSE_LOCATION_X(x),
+        MOUSE_LOCATION_Y(y),
+        0,
+        MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE | (isLeft ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_RIGHTDOWN)
+    };
+    SendInput(1, &input, sizeof(INPUT));
+}
+
+static void DoMouseUp(bool isLeft)
+{
+    INPUT input = {
+        INPUT_MOUSE,
+        0,
+        0,
+        0,
+        isLeft ? MOUSEEVENTF_LEFTUP : MOUSEEVENTF_RIGHTUP
+    };
+    SendInput(1, &input, sizeof(INPUT));
 }
