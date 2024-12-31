@@ -13,7 +13,6 @@
 #define IDD_MAIN_DIALOG                 129
 #define IDC_ENABLED_CHECK               1001
 #define IDC_ADVANCED_CHECK				1002
-// #define IDC_TEST_BUTTON					1003	// temporary
 #define IDC_WORKING_LABEL               -1
 
 // Next default values for new objects
