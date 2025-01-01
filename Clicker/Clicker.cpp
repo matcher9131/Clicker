@@ -166,7 +166,7 @@ LRESULT CALLBACK DialogProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                                 HDC hdc = GetDC(targetWindow);
                                 COLORREF color = GetPixel(hdc, x, y);
                                 ReleaseDC(targetWindow, hdc);
-                                if (color != 0x0B0B2D)
+                                if (color != 0x171717)
                                 {
                                     targetIndex = 23;
                                     state = State::BeforeTargetMouseDown;
@@ -205,7 +205,7 @@ LRESULT CALLBACK DialogProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                         HDC hdc = GetDC(targetWindow);
                         int left = offsetX + 32 * (targetIndex % 4);
                         int top = offsetY + 32 * (targetIndex / 4);
-                        if (GetPixel(hdc, left + 14, top + 2) == 0x38B3FF && GetPixel(hdc, left + 16, top + 2) == 0x38B3FF)
+                        if (GetPixel(hdc, left + 14, top + 2) == 0x42BDFF && GetPixel(hdc, left + 16, top + 2) == 0x42BDFF)
                         {
                             if (TryMouseDown(left + 16, top + 16, true))
                             {
@@ -213,7 +213,7 @@ LRESULT CALLBACK DialogProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                                 --targetIndex;
                             }
                         }
-                        else if (GetPixel(hdc, left + 10, top + 10) == 0x001762 && GetPixel(hdc, left + 12, top + 10) == 0x001762)
+                        else if (GetPixel(hdc, left + 10, top + 10) == 0x08214A && GetPixel(hdc, left + 12, top + 10) == 0x08214A)
                         {
                             if (TryMouseDown(left + 16, top + 16, true))
                             {
